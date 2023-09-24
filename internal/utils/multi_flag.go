@@ -1,9 +1,5 @@
 package utils
 
-import (
-	"fmt"
-)
-
 type setter[T any] func(value string) (T, error)
 
 var StringSetter = func(value string) (string, error) {
@@ -24,7 +20,7 @@ type UniqueMultiFlag[T any] struct {
 }
 
 func (f *UniqueMultiFlag[T]) String() string {
-	return fmt.Sprintf("%#v", f.Items())
+	return ""
 }
 
 func (f *UniqueMultiFlag[T]) Set(value string) error {

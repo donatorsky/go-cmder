@@ -87,7 +87,7 @@ E.g.:
 	flag.Parse()
 
 	if flag.NArg() < 2 {
-		logger.Panicln("Missing required arguments")
+		logger.Fatalln("Missing required arguments")
 	}
 
 	params.structName = flag.Arg(0)
@@ -99,7 +99,7 @@ E.g.:
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		logger.Panicf("Could not get current working directory: %s\n", err)
+		logger.Fatalf("Could not get current working directory: %s\n", err)
 	}
 
 	params.out = filepath.Join(cwd, params.out)
@@ -109,28 +109,28 @@ E.g.:
 		Dir:  cwd,
 	})
 	if err != nil {
-		logger.Panicf("Could not load source package: %s\n", err)
+		logger.Fatalf("Could not load source package: %s\n", err)
 	}
 	if len(pkgs) == 0 {
-		logger.Panicln("package not found")
+		logger.Fatalln("package not found")
 	}
 	if len(pkgs) > 1 {
-		logger.Panicln("found more than one package")
+		logger.Fatalln("found more than one package")
 	}
 	if len(pkgs[0].Errors) > 0 {
-		logger.Panicf("failures: %s\n", pkgs[0].Errors)
+		logger.Fatalf("failures: %s\n", pkgs[0].Errors)
 	}
 
 	importsAliases := getImportsAliases(pkgs[0].Syntax)
 
 	obj := pkgs[0].Types.Scope().Lookup(params.structName)
 	if obj == nil {
-		logger.Panicf("struct %s not found\n", params.structName)
+		logger.Fatalf("struct %s not found\n", params.structName)
 	}
 
 	structType, ok := obj.Type().Underlying().(*types.Struct)
 	if !ok {
-		logger.Panicf("%s (%s) is not a struct", params.structName, obj.Type())
+		logger.Fatalf("%s (%s) is not a struct", params.structName, obj.Type())
 	}
 
 	fields := utils.NewUniqueSlice[*template.FieldData](
@@ -161,7 +161,7 @@ E.g.:
 			typeFQN := namedType.String()
 			typeNameIndex := strings.LastIndexByte(typeFQN, '.')
 			if typeNameIndex == -1 {
-				logger.Panicf("Type FQN %q is expected to contain .", typeFQN)
+				logger.Fatalf("Type FQN %q is expected to contain .", typeFQN)
 			}
 
 			var typeNamespace string
@@ -211,7 +211,7 @@ E.g.:
 
 	tpl, err := template.NewTemplate()
 	if err != nil {
-		logger.Panicf("Failed to parse command template: %s\n", err)
+		logger.Fatalf("Failed to parse command template: %s\n", err)
 	}
 
 	var b bytes.Buffer
