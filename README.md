@@ -50,7 +50,7 @@ By default, commands are immutable, meaning that calling a setter returns new co
 #### `-out=path/to/file.go`
 
 Generates a command in given file.
-By default, command is generated in `CommandName.go` file.
+By default, command is generated in `command_name.go` file.
 
 #### `-sorted`
 
@@ -60,7 +60,7 @@ Sort fields by name when generating a command.
 ```go
 package foobar
 
-//go:generate go-cmder -out=create_struct_cmd.go -constructor=default Struct CreateStructCmd
+//go:generate go-cmder -constructor=default Struct CreateStructCmd
 type Struct struct {
 	Foo string
 	Bar int

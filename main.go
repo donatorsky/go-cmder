@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/donatorsky/go-cmder/internal/template"
@@ -17,49 +18,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func newParams() params {
-	return params{
-		exclude: utils.NewUniqueMultiFlag(utils.StringSetter),
-		include: utils.NewUniqueMultiFlag(utils.StringSetter),
-		constructor: utils.NewUniqueMultiFlag(
-			func(value string) (c constructor, _ error) {
-				nameAndParams := strings.SplitN(value, ":", 2)
-
-				c.Name = nameAndParams[0]
-
-				if len(nameAndParams) == 2 {
-					c.Params = strings.Split(nameAndParams[1], ",")
-				}
-
-				return
-			},
-			utils.UniqueSliceWithOnDuplicateKeyError(func(key, item any) error {
-				return fmt.Errorf("duplicated constructor name %q", key)
-			}),
-		),
-	}
-}
-
-type params struct {
-	mutable           bool
-	includeUnexported bool
-	sorted            bool
-	out               string
-	exclude           *utils.UniqueMultiFlag[string]
-	include           *utils.UniqueMultiFlag[string]
-	constructor       *utils.UniqueMultiFlag[constructor]
-	structName        string
-	commandName       string
-}
-
-type constructor struct {
-	Name   string
-	Params []string
-}
-
-func (c constructor) UniqueValue() any {
-	return c.Name
-}
+var filenamePattern = regexp.MustCompile(`(ID|JSON|URL|[[:upper:]])`)
 
 func main() {
 	logger := slog.NewLogLogger(slog.NewTextHandler(os.Stdout, nil), slog.LevelError)
@@ -94,7 +53,10 @@ E.g.:
 	params.commandName = flag.Arg(1)
 
 	if params.out == "" {
-		params.out = fmt.Sprintf("%s.go", params.commandName)
+		params.out = fmt.Sprintf(
+			"%s.go",
+			strings.ToLower(strings.Trim(filenamePattern.ReplaceAllString(params.commandName, "_$1"), "_")),
+		)
 	}
 
 	cwd, err := os.Getwd()
@@ -289,6 +251,50 @@ E.g.:
 	}); err != nil {
 		logger.Fatalf("Failed to write command output file: %s\n", err)
 	}
+}
+
+func newParams() params {
+	return params{
+		exclude: utils.NewUniqueMultiFlag(utils.StringSetter),
+		include: utils.NewUniqueMultiFlag(utils.StringSetter),
+		constructor: utils.NewUniqueMultiFlag(
+			func(value string) (c constructor, _ error) {
+				nameAndParams := strings.SplitN(value, ":", 2)
+
+				c.Name = nameAndParams[0]
+
+				if len(nameAndParams) == 2 {
+					c.Params = strings.Split(nameAndParams[1], ",")
+				}
+
+				return
+			},
+			utils.UniqueSliceWithOnDuplicateKeyError(func(key, item any) error {
+				return fmt.Errorf("duplicated constructor name %q", key)
+			}),
+		),
+	}
+}
+
+type params struct {
+	mutable           bool
+	includeUnexported bool
+	sorted            bool
+	out               string
+	exclude           *utils.UniqueMultiFlag[string]
+	include           *utils.UniqueMultiFlag[string]
+	constructor       *utils.UniqueMultiFlag[constructor]
+	structName        string
+	commandName       string
+}
+
+type constructor struct {
+	Name   string
+	Params []string
+}
+
+func (c constructor) UniqueValue() any {
+	return c.Name
 }
 
 func getImportsAliases(syntaxTree []*ast.File) map[string]string {
