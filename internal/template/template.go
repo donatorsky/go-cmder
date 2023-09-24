@@ -8,20 +8,18 @@ import (
 
 const (
 	commandTemplate = `package {{ .PackageName }}
-
 {{ if gt (.Imports | len) 0 }}
 import ({{ range .Imports }}
 	{{ if .Alias }}{{ .Alias }} {{ end }}"{{ .Package }}"{{ end }}
 )
 {{ end }}
-
 type {{ .CommandName }} struct {{ print "{" }}{{ range .Fields }}
 	v{{ .Name | Title }} {{ .Type }}
 	has{{ .Name | Title }} bool
 {{ end }}}
 {{range .Constructors }}
 {{ . }}
-{{ end }}
+{{ end -}}
 {{range .Methods }}
 {{ . }}
 {{ end }}`
