@@ -80,7 +80,7 @@ E.g.:
 -constructor WithFooAndBar:foo,bar CreateStructCmd // Generates NewCreateStructCmdWithFooAndBar(foo fooType, bar barType)`)
 
 	flag.Usage = func() {
-		fmt.Println(`go-cmder [flags] struct commandName`)
+		fmt.Println(`go-cmder [flags] struct CommandName`)
 		flag.PrintDefaults()
 	}
 
