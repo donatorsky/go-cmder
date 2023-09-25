@@ -42,12 +42,21 @@ type Struct struct {
 		Foo string
 		Bar int
 	}
-	FieldData          foo.OtherStruct
-	FieldDataPtr       *foo.OtherStruct
-	UniqueMultiFlag    baz.OtherGenericStruct[any]
-	UniqueMultiFlagPtr *baz.OtherGenericStruct[any]
-	Uuid               uuid.UUID
-	UuidPtr            *uuid.UUID
-	Yaml               yaml.Decoder
-	YamlPtr            *yaml.Decoder
+	Func func()
+	//FuncWithArgs               func(string, *string, *[]*baz.OtherGenericStruct[any], *[3]*baz.OtherGenericStruct[any]) //TODO
+	FuncPtr                    *func()
+	FieldData                  foo.OtherStruct
+	FieldDataPtr               *foo.OtherStruct
+	FieldDataPtrSlicePtr       *[]*foo.OtherStruct
+	UniqueMultiFlag            baz.OtherGenericStruct[any]
+	UniqueMultiFlagPtr         *baz.OtherGenericStruct[any]
+	UniqueMultiFlagPtrSlicePtr *[]*baz.OtherGenericStruct[any]
+	Uuid                       uuid.UUID
+	UuidPtr                    *uuid.UUID
+	UuidPtrSlicePtr            *[]*uuid.UUID
+	UuidPtrArrayPtr            *[3]*uuid.UUID
+	Yaml                       yaml.Decoder
+	YamlPtr                    *yaml.Decoder
+	YamlPtrSlicePtr            *[]*yaml.Decoder
+	YamlPtrArrayPtr            *[3]*yaml.Decoder
 }

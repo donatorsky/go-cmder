@@ -294,8 +294,9 @@ func detectFieldType(fieldType types.Type, logger *log.Logger, importsAliases ma
 		fieldType = pointerType.Elem()
 	}
 
-	if namedType, ok := fieldType.(*types.Named); ok {
-		typeFQN := namedType.String()
+	switch actualType := fieldType.(type) {
+	case *types.Named:
+		typeFQN := actualType.String()
 		typeNameIndex := strings.LastIndexByte(typeFQN, '.')
 		if typeNameIndex == -1 {
 			logger.Fatalf("Type FQN %q is expected to contain .", typeFQN)
@@ -327,7 +328,18 @@ func detectFieldType(fieldType types.Type, logger *log.Logger, importsAliases ma
 		}
 
 		return pointer, fmt.Sprintf("%s.%s", typeNamespace, typeFQN[typeNameIndex+1:])
-	}
 
-	return pointer, fieldType.String()
+	case *types.Slice:
+		elemPointer, elemType := detectFieldType(actualType.Elem(), logger, importsAliases, imports)
+
+		return pointer, fmt.Sprintf("[]%s%s", elemPointer, elemType)
+
+	case *types.Array:
+		elemPointer, elemType := detectFieldType(actualType.Elem(), logger, importsAliases, imports)
+
+		return pointer, fmt.Sprintf("[%d]%s%s", actualType.Len(), elemPointer, elemType)
+
+	default:
+		return pointer, fieldType.String()
+	}
 }
