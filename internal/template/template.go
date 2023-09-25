@@ -14,7 +14,7 @@ import ({{ range .Imports }}
 )
 {{ end }}
 type {{ .CommandName }} struct {{ print "{" }}{{ range .Fields }}
-	v{{ .Name | Title }} {{ .Type }}
+	v{{ .Name | Title }} {{ .Pointer }}{{ .Type }}
 	has{{ .Name | Title }} bool
 {{ end }}}
 {{range .Constructors }}
@@ -25,7 +25,7 @@ type {{ .CommandName }} struct {{ print "{" }}{{ range .Fields }}
 {{ end }}`
 
 	constructorTemplate = `func New{{ .Name | Title }}({{ if gt (.Fields | len) 0 }}{{ range .Fields }}
-	v{{ .Name | Title }} {{ .Type }},{{ end }}
+	v{{ .Name | Title }} {{ .Pointer }}{{ .Type }},{{ end }}
 {{ end }}) {{ if .Mutable }}*{{ end }}{{ .CommandName }} {
 	return {{ if .Mutable }}&{{ end }}{{ .CommandName }}{{ print "{" }}{{ if gt (.Fields | len) 0 }}{{ range .Fields }}
 		v{{ .Name | Title }}: v{{ .Name | Title }},
@@ -33,11 +33,11 @@ type {{ .CommandName }} struct {{ print "{" }}{{ range .Fields }}
 	}{{ else }}{{ print "}" }}{{ end }}
 }`
 
-	getterTemplate = `func (cmd {{ if .Mutable }}*{{ end }}{{ .CommandName }}) {{ .Name | Title }}() {{ .Type }} {
+	getterTemplate = `func (cmd {{ if .Mutable }}*{{ end }}{{ .CommandName }}) {{ .Name | Title }}() {{ .Pointer }}{{ .Type }} {
 	return cmd.v{{ .Name | Title }}
 }`
 
-	setterTemplate = `func (cmd {{ if .Mutable }}*{{ end }}{{ .CommandName }}) Set{{ .Name | Title }}(v {{ .Type }}) {{ if .Mutable }}*{{ end }}{{ .CommandName }} {
+	setterTemplate = `func (cmd {{ if .Mutable }}*{{ end }}{{ .CommandName }}) Set{{ .Name | Title }}(v {{ .Pointer }}{{ .Type }}) {{ if .Mutable }}*{{ end }}{{ .CommandName }} {
 	cmd.has{{ .Name | Title }} = true
 	cmd.v{{ .Name | Title }} = v
 

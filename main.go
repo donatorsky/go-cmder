@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -18,7 +19,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var filenamePattern = regexp.MustCompile(`(ID|JSON|URL|[[:upper:]])`)
+var (
+	filenamePattern       = regexp.MustCompile(`(ID|JSON|URL|[[:upper:]])`)
+	packageVersionPattern = regexp.MustCompile(`(.+)(?:\.v[^/]|/v[^/])$`)
+)
 
 func main() {
 	logger := slog.NewLogLogger(slog.NewTextHandler(os.Stdout, nil), slog.LevelError)
@@ -118,45 +122,13 @@ E.g.:
 			continue
 		}
 
-		var commandDataField *template.FieldData
-		if namedType, ok := field.Type().(*types.Named); ok {
-			typeFQN := namedType.String()
-			typeNameIndex := strings.LastIndexByte(typeFQN, '.')
-			if typeNameIndex == -1 {
-				logger.Fatalf("Type FQN %q is expected to contain .", typeFQN)
-			}
-
-			var typeNamespace string
-			packageName := typeFQN[:typeNameIndex]
-
-			if alias, exists := importsAliases[packageName]; exists {
-				typeNamespace = alias
-				_, _ = imports.Append(template.CommandDataImport{
-					Alias:   &alias,
-					Package: packageName,
-				})
-			} else {
-				typeNamespace = packageName[strings.LastIndexByte(packageName, '/')+1:]
-				_, _ = imports.Append(template.CommandDataImport{
-					Alias:   nil,
-					Package: packageName,
-				})
-			}
-
-			commandDataField = &template.FieldData{
-				CommandName: params.commandName,
-				Mutable:     params.mutable,
-				Name:        field.Name(),
-				Type:        fmt.Sprintf("%s.%s", typeNamespace, typeFQN[typeNameIndex+1:]),
-			}
-		} else {
-			commandDataField = &template.FieldData{
-				CommandName: params.commandName,
-				Mutable:     params.mutable,
-				Name:        field.Name(),
-				Type:        field.Type().String(),
-			}
+		commandDataField := &template.FieldData{
+			CommandName: params.commandName,
+			Mutable:     params.mutable,
+			Name:        field.Name(),
 		}
+
+		commandDataField.Pointer, commandDataField.Type = detectFieldType(field.Type(), logger, importsAliases, imports)
 
 		if fields.Has(commandDataField) {
 			logger.Fatalf("Fields' names conflict with %q.", commandDataField.Name)
@@ -309,4 +281,53 @@ func getImportsAliases(syntaxTree []*ast.File) map[string]string {
 	}
 
 	return aliases
+}
+
+func detectFieldType(fieldType types.Type, logger *log.Logger, importsAliases map[string]string, imports *utils.UniqueSlice[template.CommandDataImport]) (pointer string, unwrappedType string) {
+	for {
+		pointerType, ok := fieldType.(*types.Pointer)
+		if !ok {
+			break
+		}
+
+		pointer += "*"
+		fieldType = pointerType.Elem()
+	}
+
+	if namedType, ok := fieldType.(*types.Named); ok {
+		typeFQN := namedType.String()
+		typeNameIndex := strings.LastIndexByte(typeFQN, '.')
+		if typeNameIndex == -1 {
+			logger.Fatalf("Type FQN %q is expected to contain .", typeFQN)
+		}
+
+		var typeNamespace string
+		packageName := typeFQN[:typeNameIndex]
+
+		if alias, exists := importsAliases[packageName]; exists {
+			typeNamespace = alias
+			_, _ = imports.Append(template.CommandDataImport{
+				Alias:   &alias,
+				Package: packageName,
+			})
+		} else {
+			if packageWithoutVersion := packageVersionPattern.FindStringSubmatch(packageName); packageWithoutVersion != nil {
+				typeNamespace = packageWithoutVersion[1][strings.LastIndexByte(packageWithoutVersion[1], '/')+1:]
+				_, _ = imports.Append(template.CommandDataImport{
+					Alias:   &typeNamespace,
+					Package: packageName,
+				})
+			} else {
+				typeNamespace = packageName[strings.LastIndexByte(packageName, '/')+1:]
+				_, _ = imports.Append(template.CommandDataImport{
+					Alias:   nil,
+					Package: packageName,
+				})
+			}
+		}
+
+		return pointer, fmt.Sprintf("%s.%s", typeNamespace, typeFQN[typeNameIndex+1:])
+	}
+
+	return pointer, fieldType.String()
 }

@@ -3,8 +3,10 @@ package examples
 import (
 	"time"
 
-	"github.com/donatorsky/go-cmder/internal/template"
-	myAlias "github.com/donatorsky/go-cmder/internal/utils"
+	baz "github.com/donatorsky/go-cmder/examples/bar"
+	"github.com/donatorsky/go-cmder/examples/foo"
+	"github.com/gofrs/uuid/v5"
+	"gopkg.in/yaml.v3"
 )
 
 //go:generate go-cmder -out create_struct_cmd.go -exclude Ignore -sorted -constructor default -constructor WithIntAndString:Int,String Struct CreateStructCmd
@@ -12,20 +14,40 @@ import (
 //go:generate go-cmder -out mutable_update_struct_cmd.go -sorted -constructor default -constructor WithIntAndUniqueMultiFlag:Int,UniqueMultiFlag -mutable Struct UpdateStructCmd
 //go:generate go-cmder -sorted -constructor default Struct StructWithDefaultOutputFilenameCmd
 type Struct struct {
-	String  string
-	string  string
-	Ignore  string
-	Int     int
-	Float   float64
-	Slice   []string
-	Array   [3]string
-	Map     map[string]int
-	Time    time.Time
-	TimePtr *time.Time
-	Struct  struct {
+	String       string
+	StringPtr    *string
+	StringPtrPtr **string
+	string       string
+	Ignore       string
+	Int          int
+	IntPtr       *int
+	Float        float64
+	FloatPtr     *float64
+	Slice        []string
+	SliceOfPtrs  []*string
+	SlicePtr     *[]string
+	Array        [3]string
+	ArrayOfPtrs  [3]*string
+	ArrayPtr     *[3]string
+	Map          map[string]int
+	MapOfPtrs    *map[string]*int
+	MapPtr       *map[string]int
+	Time         time.Time
+	TimePtr      *time.Time
+	Struct       struct {
 		Foo string
 		Bar int
 	}
-	FieldData       template.FieldData
-	UniqueMultiFlag myAlias.UniqueMultiFlag[any]
+	StructPtr *struct {
+		Foo string
+		Bar int
+	}
+	FieldData          foo.OtherStruct
+	FieldDataPtr       *foo.OtherStruct
+	UniqueMultiFlag    baz.OtherGenericStruct[any]
+	UniqueMultiFlagPtr *baz.OtherGenericStruct[any]
+	Uuid               uuid.UUID
+	UuidPtr            *uuid.UUID
+	Yaml               yaml.Decoder
+	YamlPtr            *yaml.Decoder
 }

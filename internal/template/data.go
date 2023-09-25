@@ -18,7 +18,7 @@ type CommandDataImport struct {
 	Package string
 }
 
-func (c *CommandDataImport) UniqueValue() any {
+func (c CommandDataImport) UniqueValue() any {
 	return c.Package
 }
 
@@ -26,6 +26,7 @@ type FieldData struct {
 	CommandName string
 	Mutable     bool
 	Name        string
+	Pointer     string
 	Type        string
 }
 
