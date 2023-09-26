@@ -5,9 +5,7 @@ import (
 	"cmp"
 	"flag"
 	"fmt"
-	"go/ast"
 	"go/types"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,14 +13,12 @@ import (
 	"strings"
 
 	"github.com/donatorsky/go-cmder/internal/template"
+	internalTypes "github.com/donatorsky/go-cmder/internal/types"
 	"github.com/donatorsky/go-cmder/internal/utils"
 	"golang.org/x/tools/go/packages"
 )
 
-var (
-	filenamePattern       = regexp.MustCompile(`(ID|JSON|URL|[[:upper:]])`)
-	packageVersionPattern = regexp.MustCompile(`(.+)(?:\.v[^/]|/v[^/])$`)
-)
+var filenamePattern = regexp.MustCompile(`(ID|JSON|URL|[[:upper:]])`)
 
 func main() {
 	logger := slog.NewLogLogger(slog.NewTextHandler(os.Stdout, nil), slog.LevelError)
@@ -71,7 +67,7 @@ E.g.:
 	params.out = filepath.Join(cwd, params.out)
 
 	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedSyntax | packages.NeedTypes,
+		Mode: packages.NeedName | packages.NeedSyntax | packages.NeedTypes | packages.NeedImports,
 		Dir:  cwd,
 	})
 	if err != nil {
@@ -87,7 +83,7 @@ E.g.:
 		logger.Fatalf("failures: %s\n", pkgs[0].Errors)
 	}
 
-	importsAliases := getImportsAliases(pkgs[0].Syntax)
+	typesRegistry := internalTypes.NewRegistry(pkgs[0])
 
 	obj := pkgs[0].Types.Scope().Lookup(params.structName)
 	if obj == nil {
@@ -102,8 +98,6 @@ E.g.:
 	fields := utils.NewUniqueSlice[*template.FieldData](
 		utils.UniqueSliceWithCapacity(uint(structType.NumFields() - params.exclude.Len())),
 	)
-
-	imports := utils.NewUniqueSlice[template.CommandDataImport]()
 
 	for i := 0; i < structType.NumFields(); i++ {
 		field := structType.Field(i)
@@ -128,7 +122,10 @@ E.g.:
 			Name:        field.Name(),
 		}
 
-		commandDataField.Pointer, commandDataField.Type = detectFieldType(field.Type(), logger, importsAliases, imports)
+		commandDataField.Pointer, commandDataField.Type, err = typesRegistry.Resolve(field.Type())
+		if err != nil {
+			logger.Fatalf(err.Error())
+		}
 
 		if fields.Has(commandDataField) {
 			logger.Fatalf("Fields' names conflict with %q.", commandDataField.Name)
@@ -215,7 +212,7 @@ E.g.:
 
 	if err := tpl.ExecuteCommandTemplate(file, &template.CommandData{
 		PackageName:  pkgs[0].Name,
-		Imports:      imports.Items(),
+		Imports:      typesRegistry.Imports(),
 		CommandName:  params.commandName,
 		Fields:       fields.Items(),
 		Constructors: constructors,
@@ -267,79 +264,4 @@ type constructor struct {
 
 func (c constructor) UniqueValue() any {
 	return c.Name
-}
-
-func getImportsAliases(syntaxTree []*ast.File) map[string]string {
-	aliases := make(map[string]string)
-
-	for _, syntax := range syntaxTree {
-		for _, importSpec := range syntax.Imports {
-			if importSpec.Name != nil && importSpec.Name.Name != "." && importSpec.Name.Name != "_" {
-				aliases[strings.Trim(importSpec.Path.Value, `"`)] = importSpec.Name.Name
-			}
-		}
-	}
-
-	return aliases
-}
-
-func detectFieldType(fieldType types.Type, logger *log.Logger, importsAliases map[string]string, imports *utils.UniqueSlice[template.CommandDataImport]) (pointer string, unwrappedType string) {
-	for {
-		pointerType, ok := fieldType.(*types.Pointer)
-		if !ok {
-			break
-		}
-
-		pointer += "*"
-		fieldType = pointerType.Elem()
-	}
-
-	switch actualType := fieldType.(type) {
-	case *types.Named:
-		typeFQN := actualType.String()
-		typeNameIndex := strings.LastIndexByte(typeFQN, '.')
-		if typeNameIndex == -1 {
-			logger.Fatalf("Type FQN %q is expected to contain .", typeFQN)
-		}
-
-		var typeNamespace string
-		packageName := typeFQN[:typeNameIndex]
-
-		if alias, exists := importsAliases[packageName]; exists {
-			typeNamespace = alias
-			_, _ = imports.Append(template.CommandDataImport{
-				Alias:   &alias,
-				Package: packageName,
-			})
-		} else {
-			if packageWithoutVersion := packageVersionPattern.FindStringSubmatch(packageName); packageWithoutVersion != nil {
-				typeNamespace = packageWithoutVersion[1][strings.LastIndexByte(packageWithoutVersion[1], '/')+1:]
-				_, _ = imports.Append(template.CommandDataImport{
-					Alias:   &typeNamespace,
-					Package: packageName,
-				})
-			} else {
-				typeNamespace = packageName[strings.LastIndexByte(packageName, '/')+1:]
-				_, _ = imports.Append(template.CommandDataImport{
-					Alias:   nil,
-					Package: packageName,
-				})
-			}
-		}
-
-		return pointer, fmt.Sprintf("%s.%s", typeNamespace, typeFQN[typeNameIndex+1:])
-
-	case *types.Slice:
-		elemPointer, elemType := detectFieldType(actualType.Elem(), logger, importsAliases, imports)
-
-		return pointer, fmt.Sprintf("[]%s%s", elemPointer, elemType)
-
-	case *types.Array:
-		elemPointer, elemType := detectFieldType(actualType.Elem(), logger, importsAliases, imports)
-
-		return pointer, fmt.Sprintf("[%d]%s%s", actualType.Len(), elemPointer, elemType)
-
-	default:
-		return pointer, fieldType.String()
-	}
 }

@@ -1,6 +1,7 @@
 package examples
 
 import (
+	. "bytes"
 	"time"
 
 	baz "github.com/donatorsky/go-cmder/examples/bar"
@@ -34,6 +35,10 @@ type Struct struct {
 	MapPtr       *map[string]int
 	Time         time.Time
 	TimePtr      *time.Time
+	Any          any
+	AnyPtr       *any
+	Interface    interface{}
+	InterfacePtr *interface{}
 	Struct       struct {
 		Foo string
 		Bar int
@@ -41,22 +46,32 @@ type Struct struct {
 	StructPtr *struct {
 		Foo string
 		Bar int
+		Baz foo.OtherStruct
 	}
-	Func func()
-	//FuncWithArgs               func(string, *string, *[]*baz.OtherGenericStruct[any], *[3]*baz.OtherGenericStruct[any]) //TODO
-	FuncPtr                    *func()
-	FieldData                  foo.OtherStruct
-	FieldDataPtr               *foo.OtherStruct
-	FieldDataPtrSlicePtr       *[]*foo.OtherStruct
-	UniqueMultiFlag            baz.OtherGenericStruct[any]
-	UniqueMultiFlagPtr         *baz.OtherGenericStruct[any]
-	UniqueMultiFlagPtrSlicePtr *[]*baz.OtherGenericStruct[any]
-	Uuid                       uuid.UUID
-	UuidPtr                    *uuid.UUID
-	UuidPtrSlicePtr            *[]*uuid.UUID
-	UuidPtrArrayPtr            *[3]*uuid.UUID
-	Yaml                       yaml.Decoder
-	YamlPtr                    *yaml.Decoder
-	YamlPtrSlicePtr            *[]*yaml.Decoder
-	YamlPtrArrayPtr            *[3]*yaml.Decoder
+	FuncPtr                            *func()
+	FieldData                          foo.OtherStruct
+	FieldDataPtr                       *foo.OtherStruct
+	FieldDataPtrSlicePtr               *[]*foo.OtherStruct
+	UniqueMultiFlag                    baz.OtherGenericStruct[any]
+	UniqueMultiFlagPtr                 *baz.OtherGenericStruct[any]
+	UniqueMultiFlagPtrSlicePtr         *[]*baz.OtherGenericStruct[any]
+	UniqueMultiFlagWithType            baz.OtherGenericStruct[*foo.OtherStruct]
+	UniqueMultiFlagWithTypePtr         *baz.OtherGenericStruct[*foo.OtherStruct]
+	UniqueMultiFlagWithTypePtrSlicePtr *[]*baz.OtherGenericStruct[*foo.OtherStruct]
+	Uuid                               uuid.UUID
+	UuidPtr                            *uuid.UUID
+	UuidPtrSlicePtr                    *[]*uuid.UUID
+	UuidPtrArrayPtr                    *[3]*uuid.UUID
+	Yaml                               yaml.Decoder
+	YamlPtr                            *yaml.Decoder
+	YamlPtrSlicePtr                    *[]*yaml.Decoder
+	YamlPtrArrayPtr                    *[3]*yaml.Decoder
+	InternalStruct                     InternalStruct
+	InternalStructPtr                  *InternalStruct
+	Err                                error
+	ErrPtr                             *error
+	BytesBuffer                        Buffer
+	BytesBufferPtr                     *Buffer
+	Func                               func()
+	FuncWithArgs                       func(string, *string, *[]*baz.OtherGenericStruct[any], *[3]*baz.OtherGenericStruct[*foo.OtherStruct]) (*[]*baz.OtherGenericStruct[any], *[3]*baz.OtherGenericStruct[*foo.OtherStruct], error)
 }

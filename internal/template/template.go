@@ -10,11 +10,11 @@ const (
 	commandTemplate = `package {{ .PackageName }}
 {{ if gt (.Imports | len) 0 }}
 import ({{ range .Imports }}
-	{{ if .Alias }}{{ .Alias }} {{ end }}"{{ .Package }}"{{ end }}
+	{{ if .Alias }}{{ .Alias }} {{ end }}"{{ .Path }}"{{ end }}
 )
 {{ end }}
 type {{ .CommandName }} struct {{ print "{" }}{{ range .Fields }}
-	v{{ .Name | Title }} {{ .Pointer }}{{ .Type }}
+	v{{ .Name | Title }}   {{ .Pointer }}{{ .Type }}
 	has{{ .Name | Title }} bool
 {{ end }}}
 {{range .Constructors }}
